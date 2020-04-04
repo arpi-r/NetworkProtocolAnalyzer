@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title> NetworkProtocolAnalyzer </title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    </head>
+    <body>
+        <div class="container">
+            <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: aquamarine;">
+                <a class="navbar-brand" style="color: rgb(0, 0, 0);"><strong> Network Protocol Analyzer </strong></a>
+            </nav>
+            <br>
+            <br>
+            <br>
+            <br>
+            <input type="button" id="btncap" class="btn btn-primary" value="Capture Packets!" />
+            <br>
+            <br>
+            <p id="message"></p>
+        </div>
+    </body>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+
+    <script>
+ 
+        // include the ipc module to communicate with main process.
+        const ipcRenderer = require('electron').ipcRenderer; 
+         
+        const btncapclick = document.getElementById('btncap');
+        btncapclick.addEventListener('click', function () {      
+           //send the info to main process 
+            ipcRenderer.send("btncapclick"); // ipcRender.send will pass the information to main process
+        });
+
+        ipcRenderer.on('btncapclick-task-finished', function(event,param) {
+            if(param=="yes"){
+                document.getElementById("message").innerHTML = "5 packets captured in file captured_packets.pcap!";      //show message . Here we can use jquery                                        
+            }
+            console.log("Packet capture complete");
+        });
+
+    </script>
+
+</html>

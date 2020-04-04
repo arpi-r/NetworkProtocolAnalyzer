@@ -1,0 +1,15 @@
+{
+  "name": "networkprotocolanalyzer",
+  "version": "1.0.0",
+  "description": "A Protocol Analyzer using PCAP files",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Arpitha",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "^8.2.0"
+  },
+  "devDependencies": {}
+}
