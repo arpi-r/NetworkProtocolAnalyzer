@@ -13,10 +13,14 @@
             <br>
             <br>
             <br>
+            <label for="numpkts" >Enter number of packets:</label>
+            <input type="number" id="numpkts" value="5" min="0"/>
             <input type="button" id="btncap" class="btn btn-primary" value="Capture Packets!" />
             <br>
             <br>
             <p id="message"></p>
+            <input type="button" id="btnparse" class="btn btn-primary" value="View Packets Captured" />
+            <p id="packetinfo" style="white-space: pre-line"></p>
         </div>
     </body>
 
@@ -28,16 +32,34 @@
         const ipcRenderer = require('electron').ipcRenderer; 
          
         const btncapclick = document.getElementById('btncap');
+        const btnparseclick = document.getElementById('btnparse');
+
         btncapclick.addEventListener('click', function () {      
-           //send the info to main process 
-            ipcRenderer.send("btncapclick"); // ipcRender.send will pass the information to main process
+            //send the info to main process 
+            var num = document.getElementById("numpkts").value;
+            ipcRenderer.send("btncapclick", num); // ipcRender.send will pass the information to main process
         });
 
-        ipcRenderer.on('btncapclick-task-finished', function(event,param) {
+        ipcRenderer.on('btncapclick-task-finished', function(event, param) {
             if(param=="yes"){
-                document.getElementById("message").innerHTML = "5 packets captured in file captured_packets.pcap!";      //show message . Here we can use jquery                                        
+                var num = document.getElementById("numpkts").value;
+                setTimeout(() => {
+                    document.getElementById("message").innerHTML = num + " packets captured in file captured_packets_hex!";      //show message . Here we can use jquery                                                            
+                }, num*1000);
             }
             console.log("Packet capture complete");
+        });
+
+        btnparseclick.addEventListener('click', function () {      
+            //send the info to main process 
+            ipcRenderer.send("btnparseclick"); // ipcRender.send will pass the information to main process
+        });
+
+        ipcRenderer.on('btnparseclick-task-finished', function(event, param, packetinfo) {
+            if(param == "yes"){
+                document.getElementById("packetinfo").innerHTML = "Captured Packets Information: \n" + packetinfo;                                       
+            }
+            console.log("Packet info displayed");
         });
 
     </script>
