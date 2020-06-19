@@ -26,6 +26,21 @@ def read_packet(filename):
     return hexdumps[1:]
 
 
+def isSubArray(A, B, n, m): 
+    i = 0
+    j = 0   
+    while (i < n and j < m): 
+        if (A[i] == B[j]): 
+            i += 1
+            j += 1 
+            if (j == m): 
+                return True 
+        else: 
+            i = i - j + 1 
+            j = 0 
+    return False 
+
+
 def get_mac(l):
     mac = ""
     for i in range(len(l)):
@@ -66,6 +81,10 @@ def display_ethernet_header(eth, out):
         print("ARP Packet")
     elif  eth[2] == ['8', '0', '3', '5']:
         print("RARP Packet") 
+    elif eth[2] == ['8', '8', 'c', 'c']:
+        print("LLDP Packet")
+    elif eth[2] == ['8', '8', '0', '9']:
+        print("Slow Protocol Packet")
     else:
         print("Packet type not recognised")
 
@@ -127,6 +146,10 @@ def display_ip_header(iph):
         print("Destination Port: ", dp)
         print("Length: ", l)
         print("Checksum: ",get_hex_str(chsum))
+        if iph[12][4]:
+            print("Magic cookie: DHCP")
+            print()
+            print("DHCP Protocol")
         print()
 
     elif iph[8] == ['0', '6']:
@@ -166,7 +189,7 @@ def display_ip_header(iph):
         print("Multicast Address: ", get_ip_4(iph[12][3]))
 
     else:
-        print("Protocol not coded here")
+        print("Protocol not recognised")
     print() 
 
 
@@ -204,6 +227,8 @@ def parse_ip(hexdump, start):
         udp_header.append(udp_dest_port)
         udp_header.append(udp_length)
         udp_header.append(udp_checksum)
+        dhcp = isSubArray(hexdump, ['6', '3', '8', '2', '5', '3', '6', '3'], len(hexdump), 8)
+        udp_header.append(dhcp)
 
     elif protocol == ['0', '6']:
         tcp_src_port = hexdump[start:start+4]
@@ -338,6 +363,83 @@ def parse_arp(hexdump, start, flag):
     display_arp_header(arp_header, flag)
 
 
+def parse_print_lldp(hexdump, start):
+    orig_start = start
+    print("LLDP Protocol:")
+
+    while True:
+        tlv_type = hexdump[start:start+2]
+        if tlv_type == ['0', '2']:
+            print("TLV Type: Chassis Id (1)")
+            print("TLV Length: 7")
+            id = hexdump[start+4:start+6]
+            print("Chassis Id Subtype: ", get_dec(id))
+            if(get_dec(id) == 4):
+                print("(MAC Address)")
+            print("Chassis Id: ", get_mac(hexdump[start+6:start+18]))
+            start += 18
+
+        elif tlv_type == ['0', '4']:
+            print("TLV Type: Port Id (2)")
+            print("TLV Length: 4")
+            id = hexdump[start+4:start+6]
+            print("Port Id Subtype: ", get_dec(id))
+            if(get_dec(id) == 5):
+                print("(Interface name)")
+            print("Port Id: ", get_hex_str(hexdump[start+6:start+12]))
+            start += 12
+
+        elif tlv_type == ['0', '6']:
+            print("TLV Type: Time to Live (3)")
+            print("TLV Length: 2")
+            time = hexdump[start+4:start+8]
+            print("Time(Seconds): ", get_dec(time))
+            start += 8
+        
+        else:
+            break
+
+
+def parse_print_lacp(hexdump, start):
+    orig_start = start
+    print("LACP Version: ", get_hex_str(hexdump[start:start+2]))
+    start += 2
+    while True:
+        print("TLV Type: ", get_hex_str(hexdump[start:start+2]))
+        if get_dec(hexdump[start:start+2]) == 1:
+            print("(Actor Information)")
+            print("TLV Length: ", get_hex_str(hexdump[start+2:start+4]))
+            print("Actor System Priority: ", get_dec(hexdump[start+4:start+8]))
+            print("Actor System ID: ", get_mac(hexdump[start+8:start+20]))
+            print("Actor Key: ", get_dec(hexdump[start+20:start+24]))
+            print("Actor Port Priority: ", get_dec(hexdump[start+24:start+28]))
+            print("Actor Port: ", get_dec(hexdump[start+28:start+32]))
+            print("Actor State: ", get_hex_str(hexdump[start+32:start+34]))
+            start += 40
+        elif get_dec(hexdump[start:start+2]) == 2:
+            print("(Partner Information)")
+            print("TLV Length: ", get_hex_str(hexdump[start+2:start+4]))
+            print("Partner System Priority: ", get_dec(hexdump[start+4:start+8]))
+            print("Partner System: ", get_mac(hexdump[start+8:start+20]))
+            print("Partner Key: ", get_dec(hexdump[start+20:start+24]))
+            print("Partner Port Priority: ", get_dec(hexdump[start+24:start+28]))
+            print("Partner Port: ", get_dec(hexdump[start+28:start+32]))
+            print("Partner State: ", get_hex_str(hexdump[start+32:start+34]))
+            start += 40
+        elif get_dec(hexdump[start:start+2]) == 3:
+            print("(Collector Information)")
+            print("TLV Length: ", get_hex_str(hexdump[start+2:start+4]))
+            print("Collector Max Delay: ", get_dec(hexdump[start+4:start+8]))
+            start += 32
+        elif get_dec(hexdump[start:start+2]) == 0:
+            print("(Terminator)")
+            print("TLV Length: ", get_hex_str(hexdump[start+2:start+4]))
+            start += 4
+            break
+        else:
+            break
+
+
 def main():
     filename = "captured_packets_hex" # Name of file with hexdump
     hexdumps = read_packet(filename)
@@ -357,9 +459,15 @@ def main():
         elif ethernet_header[2] == ['8', '0', '3', '5']:
             parse_arp(hexdump, 28, False)
         elif ethernet_header[2] == ['8', '8', 'c', 'c']:
-            parse_lldp(hexdump, 28)
+            parse_print_lldp(hexdump, 28)
+        elif ethernet_header[2] == ['8', '8', '0', '9']:
+            if hexdump[28:30] == ['0', '1']:
+                print("LACP Protocol (Slow Protocol subtype: 0x01)")
+                parse_print_lacp(hexdump, 30)
+            else:
+                print("Slow Protocols")
         else:
-            print("Code not written for the given protocol")
+            print("Protocol Not Recognised")
 
 
 main()
