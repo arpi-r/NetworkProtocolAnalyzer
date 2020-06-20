@@ -2,7 +2,9 @@ const electron = require('electron');
 const url = require('url');
 const path = require('path');
 const exec = require('child_process').exec;
-const fs = require('fs') 
+const fs = require('fs'); 
+const readline = require('readline');
+const { protocol } = require('electron');
 
 const {app, BrowserWindow, Menu, ipcMain} = electron;
 
@@ -70,3 +72,33 @@ ipcMain.on("btnparseclick",function (event) {
         }); 
     }, 1000); 
 });
+
+ipcMain.on("btngraphclick", function (event) {
+    var graphInfo = readFromPacketInfo('./ddd');
+    setTimeout(() => {
+        event.sender.send("btngraphclick-task-finished", "yes", graphInfo);
+    }, 1000);
+    
+});
+
+function readFromPacketInfo(filename) {
+    var lineno = 0;
+    protocols = {
+        'UDP Protocol': 0,
+        'ICMP Protocol': 0,
+        'TCP Protocol': 0,
+        'DHCP Protocol': 0,
+    }
+
+    var lineReader = require('readline').createInterface({
+        input: require('fs').createReadStream(filename)
+    });
+      
+    lineReader.on('line', function (line) {
+        proto = line.trim().slice(0,-1);
+        // console.log(proto)
+        if(typeof protocols[proto] !== 'undefined')
+            protocols[proto] += 1;
+    });
+    return protocols;
+}
