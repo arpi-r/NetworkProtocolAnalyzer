@@ -33,7 +33,9 @@
                     <p id="packetinfo" style="white-space: pre-line"></p>
                 </div>
                 <div id="tabs-2">
-                    <input type="button" id="btngraph" class="btn btn-primary" value="View Graph" />
+                    <input type="button" id="btngraph" class="btn btn-primary" value="Types of Packets" />
+                    <input type="button" id="btngraphincoming" class="btn btn-primary" value="Incoming Packets" />
+                    <input type="button" id="btngraphoutgoing" class="btn btn-primary" value="Outgoing Packets" />
                     <canvas id="typePacket" width="10" height="10"></canvas>
                 </div>
                 <div id="tabs-3">
@@ -57,6 +59,8 @@
         const btncapclick = document.getElementById('btncap');
         const btnparseclick = document.getElementById('btnparse');
         const btngraphclick = document.getElementById('btngraph');
+        const btngraphincomingclick = document.getElementById('btngraphincoming');
+        const btngraphoutgoingclick = document.getElementById('btngraphoutgoing');
 
         btncapclick.addEventListener('click', function () {      
             //send the info to main process 
@@ -90,7 +94,7 @@
             ipcRenderer.send("btngraphclick");
         });
 
-        ipcRenderer.on("btngraphclick-task-finished", function(event, param, graphInfo) {
+        ipcRenderer.on("btngraphclick-task-finished", function(event, param, graphInfo, backgroundColor) {
             if(param == "yes"){
                 console.log(graphInfo);
                 var protocolNames = Object.keys(graphInfo)
@@ -104,6 +108,7 @@
                         datasets: [{
                             label: '# of Packets',
                             data: protocolNumbers,
+                            backgroundColor: backgroundColor,
                             borderWidth: 1
                         }]
                     },
@@ -120,6 +125,81 @@
                 });
             }
         });
+
+        btngraphincomingclick.addEventListener('click', function () {
+            ipcRenderer.send("btngraphincomingclick");
+        });
+
+        ipcRenderer.on("btngraphincomingclick-task-finished", function(event, param, graphInfo, bgcolor) {
+            if(param == "yes"){
+                console.log(graphInfo);
+                var protocolNames = Object.keys(graphInfo)
+                var protocolNumbers = Object.values(graphInfo);
+                console.log(protocolNames, protocolNumbers);
+                var ctx = document.getElementById('typePacket').getContext('2d');
+                var typePacket = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: protocolNames,
+                        datasets: [{
+                            label: '# of Packets',
+                            data: protocolNumbers,
+                            backgroundColor: bgcolor,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive:true,
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+        });
+
+        btngraphoutgoingclick.addEventListener('click', function () {
+            ipcRenderer.send("btngraphoutgoingclick");
+        });
+
+        ipcRenderer.on("btngraphoutgoingclick-task-finished", function(event, param, graphInfo, bgcolor) {
+            if(param == "yes"){
+                console.log(graphInfo);
+                var protocolNames = Object.keys(graphInfo)
+                var protocolNumbers = Object.values(graphInfo);
+                console.log(protocolNames, protocolNumbers);
+                var ctx = document.getElementById('typePacket').getContext('2d');
+                var typePacket = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: protocolNames,
+                        datasets: [{
+                            label: '# of Packets',
+                            data: protocolNumbers,
+                            backgroundColor: bgcolor,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive:true,
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+        });
+
+        
+
         $( function() {
           $( "#tabs" ).tabs();
         } );
