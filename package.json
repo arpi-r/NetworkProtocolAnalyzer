@@ -9,7 +9,8 @@
   "author": "Arpitha",
   "license": "MIT",
   "dependencies": {
-    "electron": "^8.2.0"
+    "electron": "^8.2.0",
+    "electron-chartjs": "^1.0.0"
   },
   "devDependencies": {}
 }

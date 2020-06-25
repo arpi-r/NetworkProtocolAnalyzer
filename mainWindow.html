@@ -3,24 +3,77 @@
     <head>
         <title> NetworkProtocolAnalyzer </title>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <link rel="stylesheet" href="./style.css">
+        <link rel="stylesheet" href="code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     </head>
     <body>
         <div class="container">
-            <nav class="navbar navbar-expand-lg navbar-dark fixed-top" style="background-color: aquamarine;">
-                <a class="navbar-brand" style="color: rgb(0, 0, 0);"><strong> Network Protocol Analyzer </strong></a>
+            <nav class="navbar navbar-expand-lg navbar-dark fixed-top bg-dark">
+                <a class="navbar-brand" style="color: rgb(255, 255, 255);"><strong>Network Protocol Analyzer</strong></a>
+                
             </nav>
+            
             <br>
             <br>
             <br>
             <br>
-            <input type="button" id="btncap" class="btn btn-primary" value="Capture Packets!" />
-            <br>
-            <br>
-            <p id="message"></p>
+            <div id="tabs">
+                <ul class="nav nav-tabs">
+                  <li class="nav-item"><a href="#tabs-1" class="btn btn-primary">Capture Packets</a></li>
+                  <li class="nav-item"><a href="#tabs-2" class="btn btn-primary">Graphs</a></li>
+                  <li class="nav-item"><a id="otherstatsclick" href="#tabs-3" class="btn btn-primary">Other Statistics</a></li>
+                </ul>
+                <div id="tabs-1">
+                    <label for="numpkts" >Enter number of packets:</label>
+                    <input type="number" id="numpkts" value="5" min="0"/>
+                    <input type="button" id="btncap" class="btn btn-primary" value="Capture Packets!" />
+                    <br>
+                    <br>
+                    <p id="message"></p>
+                    <input type="button" id="btnparse" class="btn btn-primary" value="View Packets Captured" />
+                    <p id="packetinfo" style="white-space: pre-line"></p>
+                </div>
+                <div id="tabs-2">
+                    <ul class="nav nav-tabs" id="myTab">
+                        <li class="nav-item">
+                            <input type="button" id="btngraph-tab" class="btn btn-primary" value="All Traffic" />
+                        </li>
+                        <li class="nav-item">
+                            <input type="button" id="btngraphincoming-tab" class="btn btn-primary" value="Incoming Traffic" />
+                        </li>
+                        <li class="nav-item">
+                            <input type="button" id="btngraphoutgoing-tab" class="btn btn-primary" value="Outgoing Traffic" />
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        
+                        <div class="tab-pane fade show active" id="btngraph" role="tabpanel" aria-labelledby="btngraph-tab">
+                            <h2>All Traffic</h2>
+                            <canvas id="alltr" width="10" height="10"></canvas>
+                        </div>
+                        <div class="tab-pane fade show active" id="btngraphincoming" role="tabpanel" aria-labelledby="btngraphincoming-tab">
+                            <h2>Incoming Traffic</h2>
+                            <canvas id="intr" width="10" height="10"></canvas>
+                        </div>
+                        <div class="tab-pane fade show active" id="btngraphoutgoing" role="tabpanel" aria-labelledby="btngraphoutgoing-tab">
+                            <h2>Outgoing Traffic</h2>
+                            <canvas id="outtr" width="10" height="10"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div id="tabs-3">
+                    <h2>Other Statistics</h2>
+                    <table id='stats' class="table"></table>                      
+                </div>
+            </div>
+            
         </div>
     </body>
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
 
     <script>
  
@@ -28,18 +81,259 @@
         const ipcRenderer = require('electron').ipcRenderer; 
          
         const btncapclick = document.getElementById('btncap');
+        const btnparseclick = document.getElementById('btnparse');
+        const btngraphclick = document.getElementById('btngraph-tab');
+        const btngraphincomingclick = document.getElementById('btngraphincoming-tab');
+        const btngraphoutgoingclick = document.getElementById('btngraphoutgoing-tab');
+        const otherstatsclick = document.getElementById('otherstatsclick');
+
         btncapclick.addEventListener('click', function () {      
-           //send the info to main process 
-            ipcRenderer.send("btncapclick"); // ipcRender.send will pass the information to main process
+            //send the info to main process 
+            var num = document.getElementById("numpkts").value;
+            ipcRenderer.send("btncapclick", num); // ipcRender.send will pass the information to main process
         });
 
-        ipcRenderer.on('btncapclick-task-finished', function(event,param) {
+        ipcRenderer.on('btncapclick-task-finished', function(event, param) {
             if(param=="yes"){
-                document.getElementById("message").innerHTML = "5 packets captured in file captured_packets.pcap!";      //show message . Here we can use jquery                                        
+                var num = document.getElementById("numpkts").value;
+                setTimeout(() => {
+                    document.getElementById("message").innerHTML = num + " packets captured in file captured_packets_hex!";      //show message . Here we can use jquery                                                            
+                }, num*1000);
             }
             console.log("Packet capture complete");
         });
 
+        btnparseclick.addEventListener('click', function () {      
+            //send the info to main process 
+            ipcRenderer.send("btnparseclick"); // ipcRender.send will pass the information to main process
+        });
+
+        ipcRenderer.on('btnparseclick-task-finished', function(event, param, packetinfo) {
+            if(param == "yes"){
+                document.getElementById("packetinfo").innerHTML = "Captured Packets Information: \n" + packetinfo;                                       
+            }
+            console.log("Packet info displayed");
+        });
+
+        btngraphclick.addEventListener('click', function () {
+            ipcRenderer.send("btngraphclick");
+        });
+
+        ipcRenderer.on("btngraphclick-task-finished", function(event, param, graphInfo, backgroundColor) {
+            if(param == "yes"){
+                Chart.defaults.global.defaultFontSize = 16
+                Chart.defaults.global.defaultFontColor = '#000';
+
+                console.log(graphInfo);
+                var protocolNames = Object.keys(graphInfo)
+                var protocolNumbers = Object.values(graphInfo);
+                console.log(protocolNames, protocolNumbers);
+                var ctx = document.getElementById('alltr').getContext('2d');
+                var typePacket = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: protocolNames,
+                        datasets: [{
+                            label: '# of Packets',
+                            data: protocolNumbers,
+                            backgroundColor: backgroundColor,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        "animation": {
+      "duration": 1,
+      "onComplete": function() {
+        var chartInstance = this.chart,
+          ctx = chartInstance.ctx;
+
+        ctx.font = Chart.helpers.fontString(20, 'bold', Chart.defaults.global.defaultFontFamily, 'black');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+
+        this.data.datasets.forEach(function(dataset, i) {
+          var meta = chartInstance.controller.getDatasetMeta(i);
+          meta.data.forEach(function(bar, index) {
+            var data = dataset.data[index];
+            ctx.fillText(data, bar._model.x, bar._model.y - 5);
+          });
+        });
+      }
+    },
+                        responsive:true,
+                        scales: {
+                            xAxes: [{
+                                ticks: {
+                                    beginAtZero: true,
+                                    fontSize: 16
+                                }
+                            }],
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true,
+                                    fontSize: 16
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+        });
+
+        btngraphincomingclick.addEventListener('click', function () {
+            ipcRenderer.send("btngraphincomingclick");
+        });
+
+        ipcRenderer.on("btngraphincomingclick-task-finished", function(event, param, graphInfo, bgcolor) {
+            if(param == "yes"){
+                console.log(graphInfo);
+                var protocolNames = Object.keys(graphInfo)
+                var protocolNumbers = Object.values(graphInfo);
+                console.log(protocolNames, protocolNumbers);
+                var ctx = document.getElementById('intr').getContext('2d');
+                var typePacket = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: protocolNames,
+                        datasets: [{
+                            label: '# of Packets',
+                            data: protocolNumbers,
+                            backgroundColor: bgcolor,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        "animation": {
+      "duration": 1,
+      "onComplete": function() {
+        var chartInstance = this.chart,
+          ctx = chartInstance.ctx;
+
+        ctx.font = Chart.helpers.fontString(20, 'bold', Chart.defaults.global.defaultFontFamily, 'black');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+
+        this.data.datasets.forEach(function(dataset, i) {
+          var meta = chartInstance.controller.getDatasetMeta(i);
+          meta.data.forEach(function(bar, index) {
+            var data = dataset.data[index];
+            ctx.fillText(data, bar._model.x, bar._model.y - 5);
+          });
+        });
+      }
+    },
+                        responsive:true,
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+        });
+
+        btngraphoutgoingclick.addEventListener('click', function () {
+            ipcRenderer.send("btngraphoutgoingclick");
+        });
+
+        ipcRenderer.on("btngraphoutgoingclick-task-finished", function(event, param, graphInfo, bgcolor) {
+            if(param == "yes"){
+                console.log(graphInfo);
+                var protocolNames = Object.keys(graphInfo)
+                var protocolNumbers = Object.values(graphInfo);
+                console.log(protocolNames, protocolNumbers);
+                var ctx = document.getElementById('outtr').getContext('2d');
+                var typePacket = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: protocolNames,
+                        datasets: [{
+                            label: '# of Packets',
+                            data: protocolNumbers,
+                            backgroundColor: bgcolor,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        "animation": {
+      "duration": 1,
+      "onComplete": function() {
+        var chartInstance = this.chart,
+          ctx = chartInstance.ctx;
+
+        ctx.font = Chart.helpers.fontString(20, 'bold', Chart.defaults.global.defaultFontFamily, 'black');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+
+        this.data.datasets.forEach(function(dataset, i) {
+          var meta = chartInstance.controller.getDatasetMeta(i);
+          meta.data.forEach(function(bar, index) {
+            var data = dataset.data[index];
+            ctx.fillText(data, bar._model.x, bar._model.y - 5);
+          });
+        });
+      }
+    },
+                        responsive:true,
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+        });
+
+        otherstatsclick.addEventListener('click', function () {
+            ipcRenderer.send("otherstatsclick");
+        });
+
+        ipcRenderer.on('otherstatsclick-task-finished', function(event, param, stats) {
+            if(param == "yes"){
+                keys = Object.keys(stats);
+                values = Object.values(stats);
+                var table = document.getElementById('stats').innerHTML = `
+                        <thead class="thead-dark">
+                          <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Stat Name</th>
+                            <th scope="col">Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <th scope="row">1</th>
+                            <td>${keys[0]}</td>
+                            <td>${values[0]}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">2</th>
+                            <td>${keys[1]}</td>
+                            <td>${values[1]}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">3</th>
+                            <td>${keys[2]}</td>
+                            <td>${values[2]}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">4</th>
+                            <td>${keys[3]}</td>
+                            <td>${values[3]}</td>
+                          </tr>
+                        </tbody>`
+            }
+        })
+
+        $( function() {
+          $( "#tabs" ).tabs();
+        } );
     </script>
 
 </html>
